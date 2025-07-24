@@ -58,10 +58,8 @@ def detect_waldo(request):
 @csrf_exempt
 def upload_and_detect(request):
     processed_img_b64 = None
-    print("here we go")
 
     if request.method == 'POST' and request.FILES.get('image'):
-        print("this function has been called properly")
         img_data = request.FILES['image']
         img_array = np.asarray(bytearray(img_data.read()), dtype=np.uint8)
         img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
