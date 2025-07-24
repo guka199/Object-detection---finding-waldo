@@ -1,0 +1,113 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waldo Detector</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body, html {
+      height: 100%;
+    }
+    .processed-image {
+      max-width: 480px;
+      margin: 20px auto 10px auto;
+      display: block;
+      border: 3px solid #007bff;
+      border-radius: 0.5rem;
+    }
+    .viewfinder-container {
+      max-width: 480px;
+      margin: auto;
+      position: relative;
+    }
+    video, img#captured-photo {
+      width: 100%;
+      border-radius: 0.5rem;
+      background: #000;
+    }
+    #captured-photo {
+      display: none;
+    }
+  </style>
+</head>
+<body class="d-flex flex-column justify-content-center align-items-center vh-100 bg-light">
+    <a href="/" class="position-absolute top-0 start-0 m-3">
+        <img src="{% static 'logo.png' %}" alt="Home" style="height: 50px; cursor: pointer;" />
+    </a>
+    <div class="position-absolute top-0 end-0 m-3">
+        <h1 class="fw-bold text-dark" style="font-size: 2.5rem; user-select: none;">
+            Where is Waldo?
+        </h1>
+    </div>
+
+
+
+  <!-- Image with detected Waldo and bounding boxes will appear here -->
+  <img id="processedImage" class="processed-image" alt="Processed Waldo Detection" style="display:none" />
+
+  <div class="viewfinder-container text-center">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas> <!-- ✅ ADDED canvas -->
+    <img id="captured-photo" alt="Captured Photo" />
+    <input type="file" id="uploadInput" accept="image/*" hidden />
+    <button id="takePhotoBtn" class="btn btn-primary mt-3">Find Waldo</button>
+    <a href="/upload-detect/" class="btn btn-primary mt-3">Upload Photo Instead</a>
+  </div>
+
+  <script>
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let takePhotoBtn = document.getElementById('takePhotoBtn');  // ✅ fixed ID
+    let resultImg = document.getElementById('processedImage');   // ✅ correct target image
+
+    let stream;
+
+    // Start webcam
+    async function startWebcam() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.play();
+      } catch (err) {
+        console.error("Webcam access denied:", err);
+      }
+    }
+
+    // Capture and send photo
+    takePhotoBtn.addEventListener('click', function () {
+      let context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(function (blob) {
+        let formData = new FormData();
+        formData.append('image', blob, 'photo.jpg');
+
+        fetch("", {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.processed_image) {
+            resultImg.src = data.processed_image;
+            resultImg.style.display = 'block';
+          }
+          // Restart webcam feed after a short delay
+          setTimeout(() => {
+            startWebcam();
+          }, 300);
+        })
+        .catch(error => console.error('Error:', error));
+      }, 'image/jpeg');
+    });
+
+    // Start webcam on page load
+    window.addEventListener('DOMContentLoaded', startWebcam);
+  </script>
+
+</body>
+</html>
